@@ -21,7 +21,6 @@ export default function Home() {
         <li>
           <Link href="/register">Register</Link>
         </li>
-        <button onClick={handleNavigate}>Chuyển sang trang login</button>
       </ul>
     </div>
   );
