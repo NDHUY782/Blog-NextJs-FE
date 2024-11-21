@@ -19,10 +19,14 @@ import envConfig from "@/config";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast_Test } from "@/components/ui/toast-context";
+import { collectSegments } from "next/dist/build/segment-config/app/app-segments";
+import { useAppContext } from "@/app/AppProvider";
+import authApiRequest from "@/api-request/auth";
 
 const LoginForm = () => {
   const { showToast } = useToast_Test();
   const { toast } = useToast();
+  const { setSessionToken } = useAppContext();
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
     defaultValues: {
@@ -34,27 +38,13 @@ const LoginForm = () => {
   // 2. Define a submit handler.
   async function onSubmit(values: LoginBodyType) {
     try {
-      const result = await fetch(
-        `${envConfig.NEXT_PUBLIC_API_ENDPOINT}/auth/login`,
-        {
-          body: JSON.stringify(values),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        }
-      ).then(async (res) => {
-        const payload = await res.json();
-        const data = {
-          status: res.status,
-          payload,
-        };
-        if (!res.ok) {
-          throw data;
-        }
-        return data;
-      });
+      const result = await authApiRequest.login(values);
       showToast("Login successful!", "success");
+      const resultFromNextServer = await authApiRequest.auth({
+        sessionToken: result.payload.data.token,
+      });
+
+      setSessionToken(result.payload.data.token);
     } catch (error: any) {
       const errors = error.payload.errors as {
         field: string;
@@ -130,6 +120,9 @@ const LoginForm = () => {
                 Forget your password?
               </a>
             </div>
+            <Button className="!mt-7 w-full" type="submit">
+              Log In
+            </Button>
             <div className="flex items-center gap-3 p-2">
               <div className="h-px w-full flex-1 border"></div>
               <span className="text-base font-bold uppercase text-neutral-400">
@@ -163,9 +156,6 @@ const LoginForm = () => {
                 Sign In With Github
               </button>
             </div>
-            <Button className="!mt-7 w-full" type="submit">
-              Log In
-            </Button>
           </form>
         </div>
         <div className="mt-2 flex justify-between rounded-lg ...">
